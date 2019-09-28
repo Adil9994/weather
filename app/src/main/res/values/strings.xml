@@ -1,3 +1,18 @@
 <resources>
-    <string name="app_name">weather</string>
+    <string name="app_name">Weather</string>
+    <string name="cityName">Omsk</string>
+    <string name="smallDescription">Drizzle</string>
+    <string name="mainDescription">Light intensity drizzle</string>
+    <string name="temp">280.32</string>
+    <string name="pressure">1012</string>
+    <string name="humidity">81</string>
+    <string name="temp_max">5</string>
+    <string name="temp_min">6</string>
+    <string name="visibility">10000</string>
+    <string name="windspeed">3</string>
+    <string name="windDeg">200</string>
+    <string name="time"></string>
+    <string name="sunrise"></string>
+    <string name="sunset"></string>
+    <string name="clouds"></string>
 </resources>

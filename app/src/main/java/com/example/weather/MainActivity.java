@@ -54,7 +54,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
 
         mLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
 
-        btnClickMe = (Button) findViewById(R.id.button2);
+        btnClickMe = findViewById(R.id.button2);
 
         btnClickMe.setOnClickListener(MainActivity.this);
 
