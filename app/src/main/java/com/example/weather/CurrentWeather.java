@@ -1,6 +1,7 @@
 package com.example.weather;
 
 import android.annotation.SuppressLint;
+import android.app.ProgressDialog;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.widget.TextView;
@@ -23,6 +24,10 @@ import java.util.Map;
 import com.google.gson.*;
 import com.google.gson.reflect.*;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 public class CurrentWeather extends AppCompatActivity {
     TextView cityName;
     TextView smallDescription;
@@ -39,6 +44,9 @@ public class CurrentWeather extends AppCompatActivity {
     TextView pressure;
     TextView windDeg;
     TextView visibility;
+    StringsDataBase values;
+    StringBuilder result;
+    ProgressDialog proDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,6 +67,7 @@ public class CurrentWeather extends AppCompatActivity {
         windDeg = findViewById(R.id.windDeg);
         pressure = findViewById(R.id.pressure);
         visibility = findViewById(R.id.visibility);
+        values = new StringsDataBase();
         new JsonGetter().execute("Omsk");
     }
 
@@ -69,32 +78,50 @@ public class CurrentWeather extends AppCompatActivity {
 // the format of your date
         SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss z");
 // give a timezone reference for formatting (see comment at the bottom)
-        sdf.setTimeZone(java.util.TimeZone.getTimeZone("GMT-4"));
+        sdf.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
         String formattedDate = sdf.format(date);
         return formattedDate;
     }
-
-    public static Map<String, Object> jsonToMap(String str) {
-        Map<String, Object> map = new Gson().fromJson(str, new TypeToken<HashMap<String, Object>>() {
-        }.getType());
-        return map;
+    public void setMainValues(String str) throws JSONException {
+        JSONObject jsonObj = new JSONObject(str);
+        String cityName = jsonObj.getString("name");
+        String time = jsonObj.getString("dt");
+        values.setTime(timeGetter(time));
+        this.time.setText(values.getTime());
+        int visibility = jsonObj.getInt("visibility");
+        values.setCityName(cityName);
+        this.cityName.setText(values.getCityName());
+        values.setVisibility(String.valueOf(visibility));
+        this.visibility.setText(values.getVisibility());
     }
 
-    private class JsonGetter extends AsyncTask<String, String, Map<String, Object>> {
+    public static String getSmallDescription(String str) throws JSONException {
+        JSONObject jsonObj = new JSONObject(str);
+        JSONArray weather = jsonObj.getJSONArray("weather");
+        JSONObject description = weather.getJSONObject(0);
+        String smallDescription = description.getString("main");
+        return smallDescription;
+    }
+
+    private class JsonGetter extends AsyncTask<String, String, Void> {
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
+            proDialog = new ProgressDialog(CurrentWeather.this);
+            proDialog.setMessage("Please wait...");
+            proDialog.setCancelable(false);
+            proDialog.show();
             // Do something like display a progress bar
         }
 
         // This is run in a background thread
         @Override
-        protected Map<String, Object> doInBackground(String... args) {
+        protected Void doInBackground(String... args) {
             String API_KEY = "846f12aa31d2907a0bbb26f484c1c60f";
             String location = args[0];
             String urlString = "https://api.openweathermap.org/data/2.5/weather?q=" + "Omsk" + "&appid=" + API_KEY + "&units=metric";
             try {
-                StringBuilder result = new StringBuilder();
+                result = new StringBuilder();
                 URL url = new URL(urlString);
                 URLConnection connection = url.openConnection();
                 BufferedReader br = new BufferedReader(new InputStreamReader(connection.getInputStream()));
@@ -103,9 +130,6 @@ public class CurrentWeather extends AppCompatActivity {
                     result.append(line);
                 }
                 br.close();
-                Map<String, Object> firstMap = jsonToMap(result.toString());
-                System.out.println(firstMap);
-                return firstMap;
             } catch (IOException e) {
                 System.out.println(e.getMessage());
             }
@@ -121,40 +145,15 @@ public class CurrentWeather extends AppCompatActivity {
 
         // This runs in UI when background thread finishes
         @Override
-        protected void onPostExecute(Map<String, Object> map) {
-            super.onPostExecute(map);
-            cityName.setText(map.get("name").toString());
-            visibility.setText(map.get("visibility").toString());
-            {
-                Map<String, Object> mainMap = jsonToMap(map.get("main").toString());
-                mainTemp.setText(mainMap.get("temp").toString());
-                pressure.setText(mainMap.get("pressure").toString());
-                humidity.setText(mainMap.get("humidity").toString());
-                minTemp.setText(mainMap.get("temp_min").toString());
-                maxTemp.setText(mainMap.get("temp_max").toString());
+        protected void onPostExecute(Void arg) {
+            super.onPostExecute(arg);
+            if (proDialog.isShowing())
+                proDialog.dismiss();
+            try {
+                setMainValues(result.toString());
+            } catch (JSONException e) {
+                e.printStackTrace();
             }
-            {
-                ArrayList<Map<String,Object>> weatherMap = (ArrayList<Map<String, Object>>) map.get("weather");
-                Map<String, Object> weatherFirst = weatherMap.get(0);
-                smallDescription.setText(weatherFirst.get("main").toString());
-                mainDescription.setText(weatherFirst.get("description").toString());
-            }
-            {
-                Map<String, Object> windMap = jsonToMap(map.get("wind").toString());
-                windSpeed.setText(windMap.get("speed").toString());
-                windDeg.setText(windMap.get("deg").toString());
-            }
-            {
-                Map<String, Object> cloudsMap = jsonToMap(map.get("clouds").toString());
-                clouds.setText(cloudsMap.get("all").toString());
-            }
-            {
-                Map<String, Object> sysMap = jsonToMap(map.get("sys").toString());
-                sunrise.setText(sysMap.get("sunrise").toString());
-                sunset.setText(sysMap.get("sunset").toString());
-            }
-
-            // cityName.setText(mainMap.get("temp").toString());
             // Do things like hide the progress bar or change a TextView
         }
     }
