@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.app.ProgressDialog;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.renderscript.Sampler;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -44,8 +45,8 @@ public class CurrentWeather extends AppCompatActivity {
     TextView pressure;
     TextView windDeg;
     TextView visibility;
+    String timezone;
     StringsDataBase values;
-    StringBuilder result;
     ProgressDialog proDialog;
 
     @Override
@@ -71,39 +72,101 @@ public class CurrentWeather extends AppCompatActivity {
         new JsonGetter().execute("Omsk");
     }
 
-    public String timeGetter(String str) {
+    public String timezoneConvertToHuman(String str) {
+        long seconds = Long.parseLong(str);
+        if (seconds / 3600 > 0) return "+" + seconds / 3600;
+        return String.valueOf(seconds / 3600);
+    }
+    public String timeGetterForSun(String str){
         long unixSeconds = Long.parseLong(str);
-// convert seconds to milliseconds
-        Date date = new java.util.Date(unixSeconds*1000L);
-// the format of your date
-        SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss z");
-// give a timezone reference for formatting (see comment at the bottom)
-        sdf.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
+        Date date = new java.util.Date(unixSeconds * 1000L);
+        SimpleDateFormat sdf = new java.text.SimpleDateFormat("HH:mm:ss z");
+        sdf.setTimeZone(java.util.TimeZone.getTimeZone("GMT" + timezoneConvertToHuman(timezone)));
         String formattedDate = sdf.format(date);
         return formattedDate;
     }
+    public String timeGetter(String str) {
+        long unixSeconds = Long.parseLong(str);
+        Date date = new java.util.Date(unixSeconds * 1000L);
+        SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss z");
+        sdf.setTimeZone(java.util.TimeZone.getTimeZone("GMT" + timezoneConvertToHuman(timezone)));
+        String formattedDate = sdf.format(date);
+        return formattedDate;
+    }
+    public void setSun(String str) throws JSONException {
+        JSONObject jsonObject = new JSONObject(str);
+        JSONObject sys  = jsonObject.getJSONObject("sys");
+        String sunrise = String.valueOf(sys.getInt("sunrise"));
+        String sunset = String.valueOf(sys.getInt("sunset"));
+        values.setSunrise(timeGetterForSun(sunrise));
+        values.setSunset(timeGetterForSun(sunset));
+        this.sunrise.setText(values.getSunrise());
+        this.sunset.setText(values.getSunset());
+    }
+    public void setClouds(String str) throws JSONException{
+        JSONObject jsonObject = new JSONObject(str);
+        JSONObject clouds = jsonObject.getJSONObject("clouds");
+        String cloudiness = String.valueOf(clouds.getInt("all"));
+        values.setClouds(cloudiness);
+        this.clouds.setText(values.getClouds());
+    }
+    public void setWind(String str) throws JSONException {
+        JSONObject jsonObject = new JSONObject(str);
+        JSONObject wind = jsonObject.getJSONObject("wind");
+        String windSpeed = String.valueOf(wind.getInt("speed"));
+        String windDeg = String.valueOf(wind.getInt("deg"));
+        values.setWindDeg(windDeg);
+        values.setWindSpeed(windSpeed);
+        this.windDeg.setText(values.getWindDeg());
+        this.windSpeed.setText(values.getWindSpeed());
+    }
     public void setMainValues(String str) throws JSONException {
+        JSONObject jsonObject = new JSONObject(str);
+        JSONObject main = jsonObject.getJSONObject("main");
+        String temperature = String.valueOf(main.getInt("temp"));
+        String pressure = String.valueOf(main.getInt("pressure"));
+        String humidity = String.valueOf(main.getInt("humidity"));
+        String temp_min = String.valueOf(main.getInt("temp_min"));
+        String temp_max = String.valueOf(main.getInt("temp_max"));
+        values.setMainTemp(temperature);
+        values.setPressure(pressure);
+        values.setHumidity(humidity);
+        values.setMinTemp(temp_min);
+        values.setMaxTemp(temp_max);
+        this.mainTemp.setText(values.getMainTemp());
+        this.pressure.setText(values.getPressure());
+        this.humidity.setText(values.getHumidity());
+        this.minTemp.setText(values.getMinTemp());
+        this.maxTemp.setText(values.getMaxTemp());
+    }
+
+    public void setStartValues(String str) throws JSONException {
         JSONObject jsonObj = new JSONObject(str);
         String cityName = jsonObj.getString("name");
         String time = jsonObj.getString("dt");
+        timezone = String.valueOf(jsonObj.getInt("timezone"));
         values.setTime(timeGetter(time));
-        this.time.setText(values.getTime());
         int visibility = jsonObj.getInt("visibility");
         values.setCityName(cityName);
-        this.cityName.setText(values.getCityName());
         values.setVisibility(String.valueOf(visibility));
+        this.cityName.setText(values.getCityName());
+        this.time.setText(values.getTime());
         this.visibility.setText(values.getVisibility());
     }
 
-    public static String getSmallDescription(String str) throws JSONException {
+    public void setWeather(String str) throws JSONException {
         JSONObject jsonObj = new JSONObject(str);
         JSONArray weather = jsonObj.getJSONArray("weather");
         JSONObject description = weather.getJSONObject(0);
         String smallDescription = description.getString("main");
-        return smallDescription;
+        String mainDescription = description.getString("description");
+        values.setSmallDescription(smallDescription);
+        values.setMainDescription(mainDescription);
+        this.smallDescription.setText(values.getSmallDescription());
+        this.mainDescription.setText(values.getMainDescription());
     }
 
-    private class JsonGetter extends AsyncTask<String, String, Void> {
+    private class JsonGetter extends AsyncTask<String, String, String> {
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
@@ -116,12 +179,12 @@ public class CurrentWeather extends AppCompatActivity {
 
         // This is run in a background thread
         @Override
-        protected Void doInBackground(String... args) {
+        protected String doInBackground(String... args) {
             String API_KEY = "846f12aa31d2907a0bbb26f484c1c60f";
             String location = args[0];
             String urlString = "https://api.openweathermap.org/data/2.5/weather?q=" + "Omsk" + "&appid=" + API_KEY + "&units=metric";
             try {
-                result = new StringBuilder();
+                StringBuilder result = new StringBuilder();
                 URL url = new URL(urlString);
                 URLConnection connection = url.openConnection();
                 BufferedReader br = new BufferedReader(new InputStreamReader(connection.getInputStream()));
@@ -130,6 +193,7 @@ public class CurrentWeather extends AppCompatActivity {
                     result.append(line);
                 }
                 br.close();
+                return result.toString();
             } catch (IOException e) {
                 System.out.println(e.getMessage());
             }
@@ -145,12 +209,17 @@ public class CurrentWeather extends AppCompatActivity {
 
         // This runs in UI when background thread finishes
         @Override
-        protected void onPostExecute(Void arg) {
-            super.onPostExecute(arg);
+        protected void onPostExecute(String result) {
+            super.onPostExecute(result);
             if (proDialog.isShowing())
                 proDialog.dismiss();
             try {
-                setMainValues(result.toString());
+                setStartValues(result);
+                setWeather(result);
+                setMainValues(result);
+                setWind(result);
+                setClouds(result);
+                setSun(result);
             } catch (JSONException e) {
                 e.printStackTrace();
             }
