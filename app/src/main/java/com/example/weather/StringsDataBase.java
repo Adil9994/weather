@@ -1,6 +1,7 @@
 package com.example.weather;
 
 public class StringsDataBase {
+    private String temp =  "°";
     private String cityName;
     private String smallDescription;
     private String mainTemp;
@@ -16,6 +17,11 @@ public class StringsDataBase {
     private String pressure;
     private String windDeg;
     private String visibility;
+
+    public String convertDegreeToCardinalDirection(int directionInDegrees) {
+        String directions[] = {"N", "NE", "E", "SE", "S", "SW", "W", "NW"};
+        return directions[ (int)Math.round((  ((double)directionInDegrees % 360) / 45)) % 8 ];
+    }
 
     public String getCityName() {
         return cityName;
@@ -86,15 +92,15 @@ public class StringsDataBase {
     }
 
     public void setMainTemp(String mainTemp) {
-        this.mainTemp = mainTemp;
+        this.mainTemp = mainTemp + temp;
     }
 
     public void setMaxTemp(String maxTemp) {
-        this.maxTemp = maxTemp;
+        this.maxTemp = maxTemp + temp;
     }
 
     public void setMinTemp(String minTemp) {
-        this.minTemp = minTemp;
+        this.minTemp = minTemp + temp;
     }
 
     public void setSmallDescription(String smallDescription) {
@@ -106,15 +112,15 @@ public class StringsDataBase {
     }
 
     public void setClouds(String clouds) {
-        this.clouds = clouds;
+        this.clouds = clouds + " %";
     }
 
     public void setHumidity(String humidity) {
-        this.humidity = humidity;
+        this.humidity = humidity + " %";
     }
 
     public void setPressure(String pressure) {
-        this.pressure = pressure;
+        this.pressure = pressure + " GPa";
     }
 
     public void setSunrise(String sunrise) {
@@ -126,7 +132,8 @@ public class StringsDataBase {
     }
 
     public void setVisibility(String visibility) {
-        this.visibility = visibility;
+        double visibilityMath = Math.round(Double.valueOf(visibility) / 1000);
+        this.visibility = visibilityMath + " km";
     }
 
     public void setWindDeg(String windDeg) {
@@ -134,6 +141,6 @@ public class StringsDataBase {
     }
 
     public void setWindSpeed(String windSpeed) {
-        this.windSpeed = windSpeed;
+        this.windSpeed = windSpeed + " km/h";
     }
 }

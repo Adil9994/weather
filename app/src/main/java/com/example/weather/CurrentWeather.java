@@ -114,8 +114,8 @@ public class CurrentWeather extends AppCompatActivity {
         JSONObject jsonObject = new JSONObject(str);
         JSONObject wind = jsonObject.getJSONObject("wind");
         String windSpeed = String.valueOf(wind.getInt("speed"));
-        String windDeg = String.valueOf(wind.getInt("deg"));
-        values.setWindDeg(windDeg);
+        int windDeg = wind.getInt("deg");
+        values.setWindDeg(values.convertDegreeToCardinalDirection(windDeg));
         values.setWindSpeed(windSpeed);
         this.windDeg.setText(values.getWindDeg());
         this.windSpeed.setText(values.getWindSpeed());
@@ -182,7 +182,7 @@ public class CurrentWeather extends AppCompatActivity {
         protected String doInBackground(String... args) {
             String API_KEY = "846f12aa31d2907a0bbb26f484c1c60f";
             String location = args[0];
-            String urlString = "https://api.openweathermap.org/data/2.5/weather?q=" + "Omsk" + "&appid=" + API_KEY + "&units=metric";
+            String urlString = "https://api.openweathermap.org/data/2.5/weather?q=" + "Tokio" + "&appid=" + API_KEY + "&units=metric";
             try {
                 StringBuilder result = new StringBuilder();
                 URL url = new URL(urlString);
