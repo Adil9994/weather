@@ -1,6 +1,7 @@
 package com.example.weather;
 
 import android.app.ProgressDialog;
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.text.Editable;
@@ -21,7 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
 
-public class MainMenu extends AppCompatActivity {
+public class CityFinder extends AppCompatActivity {
     private List<String> listCities;
     private MaterialSearchBar searchBar;
     ProgressDialog proDialog;
@@ -29,18 +30,17 @@ public class MainMenu extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.main_menu);
+        setContentView(R.layout.city_finder);
         searchBar = findViewById(R.id.searchBar);
         searchBar.setEnabled(false);
         searchBar.setMaxSuggestionCount(10);
         new LoadCities().execute();
     }
-
     private class LoadCities extends AsyncTask<Void, Void, List<String>> {
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
-            proDialog = new ProgressDialog(MainMenu.this);
+            proDialog = new ProgressDialog(CityFinder.this);
             proDialog.setMessage("Please wait...");
             proDialog.setCancelable(false);
             proDialog.show();
@@ -112,12 +112,14 @@ public class MainMenu extends AppCompatActivity {
 
                 @Override
                 public void onSearchConfirmed(CharSequence text) {
-                    searchBar.setLastSuggestions(listcity);
+                    Intent intent = new Intent(CityFinder.this, CurrentWeather.class);
+                    intent.putExtra("message", searchBar.getText());
+                    searchBar.disableSearch();
+                    startActivity(intent);
                 }
 
                 @Override
                 public void onButtonClicked(int buttonCode) {
-
                 }
             });
             searchBar.setLastSuggestions(listcity);

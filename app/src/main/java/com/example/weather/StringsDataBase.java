@@ -17,10 +17,19 @@ public class StringsDataBase {
     private String pressure;
     private String windDeg;
     private String visibility;
+    private String units;
 
     public String convertDegreeToCardinalDirection(int directionInDegrees) {
         String directions[] = {"N", "NE", "E", "SE", "S", "SW", "W", "NW"};
         return directions[ (int)Math.round((  ((double)directionInDegrees % 360) / 45)) % 8 ];
+    }
+
+    public String getUnits() {
+        return units;
+    }
+
+    public void setUnits(String units) {
+        this.units = units;
     }
 
     public String getCityName() {

@@ -1,8 +1,11 @@
 package com.example.weather;
 
 import android.app.ProgressDialog;
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.RadioButton;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -35,9 +38,14 @@ public class CurrentWeather extends AppCompatActivity {
     TextView windSpeed;
     TextView pressure;
     TextView windDeg;
+    TextView coords;
+    String fortext;
     TextView visibility;
+    String units;
+    String error;
     String timezone;
     StringsDataBase values;
+    String urlString;
     ProgressDialog proDialog;
 
     @Override
@@ -58,17 +66,31 @@ public class CurrentWeather extends AppCompatActivity {
         windSpeed = findViewById(R.id.windSpeed);
         windDeg = findViewById(R.id.windDeg);
         pressure = findViewById(R.id.pressure);
+        coords = findViewById(R.id.coords);
         visibility = findViewById(R.id.visibility);
         values = new StringsDataBase();
-        new JsonGetter().execute("Omsk");
-    }
 
+    }
+    public void checkWhatActivityToStart(){
+        Intent intent = getIntent();
+        String key = intent.getStringExtra("message");
+        String latitude = intent.getStringExtra("latitude");
+        String longitude = intent.getStringExtra("longitude");
+
+        if (key != null ) {
+            new JsonGetter().execute(key);
+        } else if (latitude != null) {
+            coords.setText(latitude + " " + longitude);
+            new JsonGetter().execute(latitude, longitude);
+        }
+    }
     public String timezoneConvertToHuman(String str) {
         long seconds = Long.parseLong(str);
         if (seconds / 3600 > 0) return "+" + seconds / 3600;
         return String.valueOf(seconds / 3600);
     }
-    public String timeGetterForSun(String str){
+
+    public String timeGetterForSun(String str) {
         long unixSeconds = Long.parseLong(str);
         Date date = new java.util.Date(unixSeconds * 1000L);
         SimpleDateFormat sdf = new java.text.SimpleDateFormat("HH:mm:ss z");
@@ -76,6 +98,7 @@ public class CurrentWeather extends AppCompatActivity {
         String formattedDate = sdf.format(date);
         return formattedDate;
     }
+
     public String timeGetter(String str) {
         long unixSeconds = Long.parseLong(str);
         Date date = new java.util.Date(unixSeconds * 1000L);
@@ -84,9 +107,10 @@ public class CurrentWeather extends AppCompatActivity {
         String formattedDate = sdf.format(date);
         return formattedDate;
     }
+
     public void setSun(String str) throws JSONException {
         JSONObject jsonObject = new JSONObject(str);
-        JSONObject sys  = jsonObject.getJSONObject("sys");
+        JSONObject sys = jsonObject.getJSONObject("sys");
         String sunrise = String.valueOf(sys.getInt("sunrise"));
         String sunset = String.valueOf(sys.getInt("sunset"));
         values.setSunrise(timeGetterForSun(sunrise));
@@ -94,13 +118,15 @@ public class CurrentWeather extends AppCompatActivity {
         this.sunrise.setText(values.getSunrise());
         this.sunset.setText(values.getSunset());
     }
-    public void setClouds(String str) throws JSONException{
+
+    public void setClouds(String str) throws JSONException {
         JSONObject jsonObject = new JSONObject(str);
         JSONObject clouds = jsonObject.getJSONObject("clouds");
         String cloudiness = String.valueOf(clouds.getInt("all"));
         values.setClouds(cloudiness);
         this.clouds.setText(values.getClouds());
     }
+
     public void setWind(String str) throws JSONException {
         JSONObject jsonObject = new JSONObject(str);
         JSONObject wind = jsonObject.getJSONObject("wind");
@@ -111,6 +137,7 @@ public class CurrentWeather extends AppCompatActivity {
         this.windDeg.setText(values.getWindDeg());
         this.windSpeed.setText(values.getWindSpeed());
     }
+
     public void setMainValues(String str) throws JSONException {
         JSONObject jsonObject = new JSONObject(str);
         JSONObject main = jsonObject.getJSONObject("main");
@@ -156,6 +183,31 @@ public class CurrentWeather extends AppCompatActivity {
         this.smallDescription.setText(values.getSmallDescription());
         this.mainDescription.setText(values.getMainDescription());
     }
+    public void onRadioButtonClicked(View view) {
+        // Is the button now checked?
+        boolean checked = ((RadioButton) view).isChecked();
+        // Check which radio button was clicked
+        switch (view.getId()) {
+            case R.id.radio_kel:
+                if (checked) {
+                    units = "kelvin";
+                    checkWhatActivityToStart();
+                    break;
+                }
+            case R.id.radio_cel:
+                if (checked) {
+                    units = "metric";
+                    checkWhatActivityToStart();
+                    break;
+                }
+            case R.id.radio_fah:
+                if (checked) {
+                    units = "imperial";
+                    checkWhatActivityToStart();
+                    break;
+                }
+        }
+    }
 
     private class JsonGetter extends AsyncTask<String, String, String> {
         @Override
@@ -172,8 +224,11 @@ public class CurrentWeather extends AppCompatActivity {
         @Override
         protected String doInBackground(String... args) {
             String API_KEY = "846f12aa31d2907a0bbb26f484c1c60f";
-            String location = args[0];
-            String urlString = "https://api.openweathermap.org/data/2.5/weather?q=" + "Tokio" + "&appid=" + API_KEY + "&units=metric";
+            if (args[0].matches(".*\\d.*") && args[1].matches(".*\\d.*")) {
+                urlString = "https://api.openweathermap.org/data/2.5/weather?lat=" + args[1] + "&lon=" + args[0] +"&units=" + units + "&appid=" +  API_KEY;
+            } else {
+                urlString = "https://api.openweathermap.org/data/2.5/weather?q=" + args[0] +"&units=" + units +  "&appid=" + API_KEY;
+            }
             try {
                 StringBuilder result = new StringBuilder();
                 URL url = new URL(urlString);
@@ -184,11 +239,13 @@ public class CurrentWeather extends AppCompatActivity {
                     result.append(line);
                 }
                 br.close();
+                if (result.toString().isEmpty())
+                    return "Wrong input,city not founded";
                 return result.toString();
             } catch (IOException e) {
                 System.out.println(e.getMessage());
             }
-            return null;
+            return "Wrong input,city not founded";
         }
 
         // This is called from background thread but runs in UI
@@ -202,6 +259,10 @@ public class CurrentWeather extends AppCompatActivity {
         @Override
         protected void onPostExecute(String result) {
             super.onPostExecute(result);
+            error = "City not founded,try again";
+            if (result.equals("Wrong input,city not founded")) {
+                cityName.setText(error);
+            }
             if (proDialog.isShowing())
                 proDialog.dismiss();
             try {

@@ -26,9 +26,9 @@ import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.model.LatLng;
 
-public class MainActivity extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener, View.OnClickListener {
+public class GpsFinder extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener, View.OnClickListener {
     Button btnClickMe;
-    private static final String TAG = "MainActivity";
+    private static final String TAG = "GpsFinder";
     private TextView mLatitudeTextView;
     private TextView mLongitudeTextView;
     private GoogleApiClient mGoogleApiClient;
@@ -38,13 +38,14 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
     private com.google.android.gms.location.LocationListener listener;
     private long UPDATE_INTERVAL = 2 * 1000;  /* 10 secs */
     private long FASTEST_INTERVAL = 2000; /* 2 sec */
-
+    String latitude;
+    String longitude;
     private LocationManager locationManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.gps_finder);
 
         mGoogleApiClient = new GoogleApiClient.Builder(this)
                 .addConnectionCallbacks(this)
@@ -56,7 +57,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
 
         btnClickMe = findViewById(R.id.button2);
 
-        btnClickMe.setOnClickListener(MainActivity.this);
+        btnClickMe.setOnClickListener(GpsFinder.this);
 
     }
 
@@ -75,8 +76,8 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
             startLocationUpdates();
         }
         if (mLocation != null) {
-            mLatitudeTextView.setText(String.valueOf(mLocation.getLatitude()));
-            mLongitudeTextView.setText(String.valueOf(mLocation.getLongitude()));
+            latitude = String.valueOf(mLocation.getLatitude());
+            longitude = String.valueOf(mLocation.getLongitude());
             Toast.makeText(this, "Location Detected", Toast.LENGTH_SHORT).show();
         }
     }
@@ -129,8 +130,6 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         String msg = "Updated Location: " +
                 Double.toString(location.getLatitude()) + "," +
                 Double.toString(location.getLongitude());
-        mLatitudeTextView.setText(String.valueOf(location.getLatitude()));
-        mLongitudeTextView.setText(String.valueOf(location.getLongitude()));
         // Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
         // You can now create a LatLng Object for use with maps
         LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
@@ -139,7 +138,12 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
     private boolean checkLocation() {
         if (!isLocationEnabled())
             showAlert();
-        else Toast.makeText(this, "Location already established", Toast.LENGTH_SHORT).show();
+        else {
+            Intent intent = new Intent(GpsFinder.this, CurrentWeather.class);
+            intent.putExtra("latitude", latitude);
+            intent.putExtra("longitude", longitude);
+            startActivity(intent);
+        }
         return isLocationEnabled();
     }
 
